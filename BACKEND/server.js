@@ -15,7 +15,7 @@ app.use(exp.json());
 app.use(exp.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  origin: "https://chat-app-569.netlify.app" ||process.env.FRONTEND_URL || "http://localhost:5173",
   credentials: true
 }));
 
