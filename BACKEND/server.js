@@ -2,29 +2,48 @@ import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import exp from 'express'
 import db from './src/config/mongo.setup.js';
-import  authRouter from './src/routes/authRoutes.js'
+import authRouter from './src/routes/authRoutes.js'
 import userRouter from './src/routes/userRoutes.js';
 import chatRouter from './src/routes/chatRouter.js'
 import messageRouter from './src/routes/messageRoutes.js'
 import cors from "cors";
 
+const app = exp();
 
-
-const app=exp()
-
-app.listen(3000)
+// ✅ 1. FIRST - Set up all middleware
 app.use(exp.json());
 app.use(exp.urlencoded({ extended: true }));
-app.use(cookieParser())
+app.use(cookieParser());
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Use env var for production
   credentials: true
 }));
+
+// ✅ 2. THEN - Connect to database
 db();
-//routes
-app.use('/api/auth',authRouter);
-app.use('/api/user',userRouter);
-app.use('/api/chat',chatRouter);
-app.use('/api/message',messageRouter);
 
+// ✅ 3. THEN - Set up all routes
+app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
+app.use('/api/chat', chatRouter);
+app.use('/api/message', messageRouter);
 
+// ✅ 4. FINALLY - Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📝 Routes available:`);
+  console.log(`   - /api/auth`);
+  console.log(`   - /api/user`);
+  console.log(`   - /api/chat`);
+  console.log(`   - /api/message`);
+});
+
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ 
+    message: 'Server is working!',
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV
+  });
+});
