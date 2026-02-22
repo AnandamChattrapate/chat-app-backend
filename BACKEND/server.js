@@ -1,4 +1,3 @@
-// 1. Imports
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 import exp from 'express';
@@ -11,7 +10,7 @@ import cors from "cors";
 
 const app = exp();
 
-// 2. Middleware
+// 1. FIRST - Set up all middleware
 app.use(exp.json());
 app.use(exp.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -20,35 +19,45 @@ app.use(cors({
   credentials: true
 }));
 
-// 3. Database connection
+// 2. THEN - Connect to database (don't await here)
 db();
 
-// 4. Routes - THIS is where app._router gets created
-app.use('/api/auth', authRouter);
-app.use('/api/user', userRouter);
-app.use('/api/chat', chatRouter);
-app.use('/api/message', messageRouter);
+// 3. THEN - Register ALL routes
+console.log('📝 Registering routes...');
 
-// 5. Test routes (can go here or after)
+app.use('/api/auth', authRouter);
+console.log('✅ /api/auth routes registered');
+
+app.use('/api/user', userRouter);
+console.log('✅ /api/user routes registered');
+
+app.use('/api/chat', chatRouter);
+console.log('✅ /api/chat routes registered');
+
+app.use('/api/message', messageRouter);
+console.log('✅ /api/message routes registered');
+
+// 4. Test route
 app.get('/test', (req, res) => {
-  res.json({ message: 'Server is working!', time: new Date().toISOString() });
+  res.json({ 
+    message: 'Server is working!', 
+    time: new Date().toISOString(),
+    env: process.env.NODE_ENV 
+  });
 });
 
-// 6. DEBUG ROUTE - MUST come AFTER all other routes
-// Add this AFTER all your routes are registered
+// 5. Debug route - NOW it will see all routes
 app.get('/debug-routes', (req, res) => {
   try {
-    // Check if _router exists
     if (!app._router) {
       return res.json({ 
-        message: 'No routes registered yet',
-        routes: [] 
+        message: 'Routes not yet initialized',
+        note: 'This should not happen if routes are registered before server starts'
       });
     }
 
     const routes = [];
     
-    // Safely iterate through stack
     app._router.stack.forEach((layer) => {
       if (layer.route) {
         // Direct routes
@@ -57,15 +66,19 @@ app.get('/debug-routes', (req, res) => {
           methods: Object.keys(layer.route.methods)
         });
       } else if (layer.name === 'router' && layer.handle && layer.handle.stack) {
-        // Router-mounted routes - get the base path
+        // Router-mounted routes
         const basePath = layer.regexp
           .toString()
-          .split('\\/')[1]
-          ?.split('?')[0] || '';
+          .replace('/^\\//', '')
+          .replace('\\/?(?=\\/|$)/i', '')
+          .replace(/\\\//g, '/')
+          .replace('^', '');
           
         layer.handle.stack.forEach((handler) => {
           if (handler.route) {
-            const fullPath = basePath ? `/${basePath}${handler.route.path}` : handler.route.path;
+            const fullPath = basePath === '/' 
+              ? handler.route.path 
+              : `${basePath}${handler.route.path}`;
             routes.push({
               path: fullPath,
               methods: Object.keys(handler.route.methods)
@@ -76,7 +89,7 @@ app.get('/debug-routes', (req, res) => {
     });
     
     res.json({
-      message: 'Registered routes',
+      message: 'Routes registered successfully',
       total: routes.length,
       routes: routes.sort((a, b) => a.path.localeCompare(b.path))
     });
@@ -89,8 +102,18 @@ app.get('/debug-routes', (req, res) => {
   }
 });
 
-// 7. Start server
+// 6. FINALLY - Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
+  console.log('\n' + '='.repeat(50));
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log('='.repeat(50));
+  console.log('📌 Available endpoints:');
+  console.log('   → /test');
+  console.log('   → /debug-routes');
+  console.log('   → /api/auth/*');
+  console.log('   → /api/user/*');
+  console.log('   → /api/chat/*');
+  console.log('   → /api/message/*');
+  console.log('='.repeat(50) + '\n');
 });
