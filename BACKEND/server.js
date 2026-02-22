@@ -47,3 +47,34 @@ app.get('/test', (req, res) => {
     env: process.env.NODE_ENV
   });
 });
+
+// Add this TEMPORARY route to see all registered paths
+app.get('/debug-routes', (req, res) => {
+  const routes = [];
+  
+  // Extract all registered routes
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      // Direct routes
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods)
+      });
+    } else if (middleware.name === 'router') {
+      // Router-mounted routes
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          const path = handler.route.path;
+          const methods = Object.keys(handler.route.methods);
+          routes.push({ path, methods });
+        }
+      });
+    }
+  });
+  
+  res.json({
+    message: 'All registered routes',
+    total: routes.length,
+    routes: routes
+  });
+});
