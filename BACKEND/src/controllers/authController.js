@@ -56,10 +56,17 @@ const token=jwt.sign(
 );
 
 // send response
- res.cookie("token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false, // MUST be false on localhost
+//  res.cookie("token", token, {
+//       httpOnly: true,
+//       sameSite: "lax",
+//       secure: false, // MUST be false on localhost
+// });
+  // send response
+res.cookie("token", token, {
+  httpOnly: true,
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',  // ← CHANGE THIS
+  secure: process.env.NODE_ENV === 'production',  // ← CHANGE THIS (true in production)
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
 });
 
 console.log('=====login success======')
@@ -74,7 +81,7 @@ return res.status(200).json({
         email:user.email,
         }
     })
-
+console.log("token on backend : ",token);
 
     // create cookies store it in users browser 
 
